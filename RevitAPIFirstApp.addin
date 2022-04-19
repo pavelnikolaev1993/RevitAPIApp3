@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<RevitAddIns>
+	<AddIn Type="Command">
+		<Assembly>"D:\RevitAPITrainig\RevitAPIFirstApp.dll"</Assembly>
+		<AddInId>F04E229B-99EC-45DD-84CA-7559548AFC43</AddInId>
+		<FullClassName>RevitAPIFirstApp.Main</FullClassName>
+		<VendorId>ADSK</VendorId>
+		<Text>Расчет объемов стен</Text>
+	</AddIn>
+</RevitAddIns>
