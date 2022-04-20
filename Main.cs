@@ -15,55 +15,54 @@ namespace RevitAPIFirstApp
     [Transaction(TransactionMode.Manual)]
     public class Main : IExternalCommand
     {
+        private double lengthMarginMeters;
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
             UIApplication uiapp = commandData.Application;
             UIDocument uidoc = uiapp.ActiveUIDocument;
             Document doc = uidoc.Document;
-
+            lengthMarginMeters = 0;
             var categorySet = new CategorySet();
             categorySet.Insert(Category.GetCategory(doc, BuiltInCategory.OST_PipeCurves));
 
-            using (Transaction ts = new Transaction(doc, "Add parametr"))
+            using (Transaction ts = new Transaction(doc, "Add Parameter"))
             {
                 ts.Start();
-                CreateSharedParameter(uiapp.Application, doc, "Наименование", categorySet, BuiltInParameterGroup.PG_DATA, true);
+                CreateSharedParameter(uiapp.Application, doc, "Длина с запасом", categorySet, BuiltInParameterGroup.PG_LENGTH, true);
                 ts.Commit();
             }
-            List<Pipe> pipes = new FilteredElementCollector(doc)
-                .OfCategory(BuiltInCategory.OST_PipeCurves)
-                .WhereElementIsNotElementType()
-                .Cast<Pipe>()
-                .ToList();
-            foreach (var selectedElement in pipes)
-            {
-                Element element = doc.GetElement(selectedElement.Id);
-                if (element is Pipe)
-                {
-                    Parameter outerDiamParameter = element.get_Parameter(BuiltInParameter.RBS_PIPE_OUTER_DIAMETER);
-                    Parameter innerDiamParameter = element.get_Parameter(BuiltInParameter.RBS_PIPE_INNER_DIAM_PARAM);
-                    if (outerDiamParameter.StorageType == StorageType.Double && innerDiamParameter.StorageType == StorageType.Double)
-                    {
-                        double outerDiamValue = UnitUtils.ConvertFromInternalUnits(outerDiamParameter.AsDouble(), UnitTypeId.Millimeters);
-                        double innerDiamValue = UnitUtils.ConvertFromInternalUnits(innerDiamParameter.AsDouble(), UnitTypeId.Millimeters);
 
-                        using (Transaction ts1 = new Transaction(doc, "Set parameter"))
+            IList<Reference> selectedElementRefList = uidoc.Selection.PickObjects(ObjectType.Element, "Выберите трубы");
+
+            foreach (var selectedElement in selectedElementRefList)
+            {
+                Element elem = doc.GetElement(selectedElement);
+                if (elem.Category.Name == "Трубы")
+                {
+                    Parameter length = elem.get_Parameter(BuiltInParameter.CURVE_ELEM_LENGTH);
+                    if (length.StorageType == StorageType.Double)
+                    {
+                        double lengthMeters = UnitUtils.ConvertFromInternalUnits(length.AsDouble(), UnitTypeId.Meters);
+                        lengthMarginMeters = lengthMeters * 1.1;
+
+                        using (Transaction ts = new Transaction(doc, "Set Parameters"))
                         {
-                            ts1.Start();
-                            var pipe = element as Pipe;
-                            Parameter name = pipe.LookupParameter("Наименование");
-                            string output = $"{outerDiamValue}/{innerDiamParameter}";
-                            name.Set(output);
-                            ts1.Commit();
+                            ts.Start();
+                            Parameter lengthMarginParam = elem.LookupParameter("Длина с запасом");
+                            lengthMarginParam.Set(lengthMarginMeters);
+                            ts.Commit();
                         }
                     }
-
+                }
+                else
+                {
+                    TaskDialog.Show("Ошибка", "Выбранный элемент не относится к трубам");
+                    return Result.Failed;
                 }
             }
-
-            TaskDialog.Show("Успешно", message);
             return Result.Succeeded;
         }
+
 
         private void CreateSharedParameter(Application application, Document doc, string parameterName, CategorySet categorySet,
             BuiltInParameterGroup builtInParameterGroup, bool isInstance)
