@@ -5,6 +5,6 @@
 		<AddInId>F04E229B-99EC-45DD-84CA-7559548AFC43</AddInId>
 		<FullClassName>RevitAPIFirstApp.Main</FullClassName>
 		<VendorId>ADSK</VendorId>
-		<Text>Расчет объемов стен</Text>
+		<Text>Наименование</Text>
 	</AddIn>
 </RevitAddIns>
